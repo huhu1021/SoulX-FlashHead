@@ -9,3 +9,10 @@ gradio_results/
 gradio_results_multigpu/
 models/
 tools/
+
+# 本地产物（WorkBuddy 工作数据与文档流水线输出，不入库）
+.workbuddy/
+output/
+.gitignore.local
+flash_head_server/data/
+*.pyc
