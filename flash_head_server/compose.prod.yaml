@@ -30,5 +30,19 @@ services:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              # 指定使用哪张卡：.env 里 CUDA_DEVICE=3（物理卡号，容器内自动映射为 cuda:0）
+              # 不指定时默认用 3 号卡。多卡并发部署见文件底部注释。
+              device_ids: ["${CUDA_DEVICE:-3}"]
               capabilities: [gpu]
+
+# 多卡并发（可选）：FlashHead Lite 单卡单实例，想用两张卡跑两个实例提高并发，
+# 复制本 service 改名（如 flashhead2）、device_ids 换另一张卡、端口错开：
+#   services:
+#     flashhead2:
+#       image: <同上>
+#       ports: ["8001:8000"]
+#       environment: <同上>
+#       volumes: <同上>
+#       deploy: { resources: { reservations: { devices: [ { driver: nvidia,
+#                  device_ids: ["2"], capabilities: [gpu] } ] } } }
+# 注意：Pro 档双卡 USP 序列并行与此不同（需 torch.multiprocessing 多进程改造），单卡 Lite 直接一卡一容器。
