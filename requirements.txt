@@ -1,5 +1,5 @@
-opencv-python>=4.12.0.88
-opencv-python-headless>=4.12.0.88
+# opencv 由 mediapipe 传递依赖 opencv-contrib-python 提供；代码不直接 import cv2，
+# 且 opencv-python / opencv-python-headless 与 contrib 三者共存会互相覆盖 cv2，故不在此声明
 diffusers>=0.34.0
 transformers==4.57.3
 tokenizers>=0.20.3
@@ -19,4 +19,4 @@ xformers==0.0.31
 librosa
 mediapipe==0.10.9
 flask
-nvidia-nccl-cu12==2.27.3
+nvidia-nccl-cu12==2.26.2

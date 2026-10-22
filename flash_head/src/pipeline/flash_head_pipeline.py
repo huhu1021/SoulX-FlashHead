@@ -16,8 +16,10 @@ from flash_head.utils.utils import match_and_blend_colors_torch, resize_and_cent
 from flash_head.utils.facecrop import process_image
 
 # compile models to speedup inference
-COMPILE_MODEL = True
-COMPILE_VAE = True
+# 可通过 FLASHHEAD_COMPILE=0 关闭：torch.compile(inductor) 需要 gcc，
+# 无编译器的 runtime 镜像/容器中会在首次 encode 时崩溃，置 0 走 eager 模式
+COMPILE_MODEL = os.environ.get("FLASHHEAD_COMPILE", "1") == "1"
+COMPILE_VAE = os.environ.get("FLASHHEAD_COMPILE", "1") == "1"
 # use parallel vae to speedup decode/encode, only support WanVAE
 USE_PARALLEL_VAE = True
 

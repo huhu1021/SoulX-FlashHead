@@ -1,6 +1,7 @@
 # FlashHead 推理服务镜像
 # 构建上下文必须是项目根目录：docker build -f flash_head_server/Dockerfile .
-FROM pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
+# FROM 走 daocloud 加速：本机直连 registry-1.docker.io 遭 DNS 污染（解析到非 DockerHub IP，连接被拒）
+FROM docker.m.daocloud.io/pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -9,13 +10,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# 先装依赖（利用层缓存）
+# 先装依赖（利用层缓存）；pip 走阿里云源：容器内直连 PyPI 仅 ~50KB/s
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir "huggingface_hub[cli]"
+        -i https://mirrors.aliyun.com/pypi/simple/ \
+    && pip install --no-cache-dir huggingface_hub \
+        -i https://mirrors.aliyun.com/pypi/simple/
 
 # 安装 flash-attn（预编译 wheel 优先；构建机若网络受限可改为挂载 whl）
 RUN pip install --no-cache-dir flash_attn==2.8.0.post2 --no-build-isolation \
+        -i https://mirrors.aliyun.com/pypi/simple/ \
     || echo "[WARN] flash-attn 安装失败，服务将以 SDPA 兼容模式运行（速度略降）"
 
 # 拷贝代码

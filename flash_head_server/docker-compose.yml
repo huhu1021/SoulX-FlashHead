@@ -7,17 +7,23 @@ services:
     container_name: flashhead-server
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      # 宿主机 8300 -> 容器 8000：避开智能客服 api 服务占用的宿主机 8000
+      - "8300:8000"
     environment:
       MODEL_TYPE: lite                 # lite（单卡4090实时）/ pro（需多卡，见下）
       USE_FACE_CROP: "0"               # 1=对上传形象自动人脸检测裁剪
+      FLASHHEAD_COMPILE: "0"           # runtime 镜像无 gcc，关闭 torch.compile 走 eager 模式
       API_KEY: ""                      # 设置后所有接口需带 X-API-Key 头
       SESSION_TTL_S: "1800"
       MEDIA_TTL_S: "3600"
     volumes:
       # 模型权重（先执行 huggingface-cli download 到宿主机 models/ 目录）
-      - ../../models/SoulX-FlashHead-1_3B:/app/models/SoulX-FlashHead-1_3B:ro
-      - ../../models/wav2vec2-base-960h:/app/models/wav2vec2-base-960h:ro
+      # 注：本文件位于 flash_head_server/，故相对项目根 models/ 的正确前缀是 ../models
+      - ../models/SoulX-FlashHead-1_3B:/app/models/SoulX-FlashHead-1_3B:ro
+      - ../models/wav2vec2-base-960h:/app/models/wav2vec2-base-960h:ro
+      # 代码热挂载：改源码后 docker compose restart 即生效，无需重建镜像
+      - ./server.py:/app/server.py:ro
+      - ../flash_head:/app/flash_head:ro
       # 形象库与产出视频（持久化）
       - ./data:/data
     deploy:
