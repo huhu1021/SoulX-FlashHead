@@ -126,7 +126,7 @@ def generate_sentence_video(audio_np: np.ndarray) -> torch.Tensor:
     sr = ip["sample_rate"]
     fps = ip["tgt_fps"]
 
-    min_len = frame_num * sr // fps                    # 最短约 1.32s，不足补静音
+    min_len = (frame_num + slice_len) * sr // fps      # 至少 33+25=58 帧(约2.32s)才能切出1个完整chunk，不足补静音
     if len(audio_np) < min_len:
         audio_np = np.concatenate([audio_np, np.zeros(min_len - len(audio_np))])
 
@@ -193,11 +193,15 @@ def register_avatar(name: str, image_path: str):
 
 
 def warmup():
-    """后台预热：跑一次 2 秒静音生成，触发 torch.compile 编译与 CUDA kernel 缓存。"""
+    """后台预热：跑一次 4 秒静音生成，触发 CUDA kernel 缓存。
+
+    注意：once 模式需要至少 frame_num + slice_len 个音频帧才能切出完整 chunk
+    （约 2.32s），2 秒会因 n_chunks=0 触发 torch.cat 空列表错误，故用 4 秒。
+    """
     global WARM
     t0 = time.time()
     try:
-        silence = np.zeros(INFER_PARAMS["sample_rate"] * 2, dtype=np.float32)
+        silence = np.zeros(INFER_PARAMS["sample_rate"] * 4, dtype=np.float32)
         first_avatar = next(iter(PIPELINE.cond_image_dict))
         with GPU_LOCK:
             PIPELINE.reset_person_name(first_avatar)
