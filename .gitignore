@@ -13,6 +13,7 @@ tools/
 # 本地产物（WorkBuddy 工作数据与文档流水线输出，不入库）
 .workbuddy/
 output/
-.gitignore.local
 flash_head_server/data/
+flash_head_server/.acr.env
+flash_head_server/.env
 *.pyc

@@ -1,0 +1,23 @@
+# Docker 构建上下文裁剪：构建上下文是仓库根目录，
+# 排除无关大文件，避免把模型/产物/会话数据打进 build context
+.git
+.github
+.vscode
+.idea
+.workbuddy
+output
+models
+sample_results
+gradio_results
+gradio_results_multigpu
+assets
+download_weights.py
+flash_head_server/data
+flash_head_server/.acr.env
+flash_head_server/compose.prod.yaml
+flash_head_server/.env
+flash_head_server/.env.example
+flash_head_server/build_push.sh
+flash_head_server/deploy_server.sh
+**/__pycache__
+*.pyc

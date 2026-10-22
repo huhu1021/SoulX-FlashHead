@@ -1,0 +1,34 @@
+# FlashHead 推理服务 —— 生产编排（服务器侧，拉取 ACR 镜像，不在服务器上构建）
+# 配套 deploy_server.sh 与 .env 使用；部署目录结构见 deploy_server.sh 头部注释
+services:
+  flashhead:
+    image: crpi-3mnw2c0qqumul4h9.cn-heyuan.personal.cr.aliyuncs.com/huhan_9527/flashhead-server:${IMAGE_TAG:-latest}
+    container_name: flashhead-server
+    restart: unless-stopped
+    ports:
+      - "${FLASHHEAD_PORT:-8000}:8000"
+    environment:
+      MODEL_TYPE: ${MODEL_TYPE:-lite}        # lite（单卡实时）/ pro
+      USE_FACE_CROP: ${USE_FACE_CROP:-0}
+      API_KEY: ${API_KEY:-}                  # 建议在生产 .env 设置，接口需带 X-API-Key
+      SESSION_TTL_S: ${SESSION_TTL_S:-1800}
+      MEDIA_TTL_S: ${MEDIA_TTL_S:-3600}
+    volumes:
+      # 模型权重（部署目录下 models/，勿打进镜像）
+      - ./models/SoulX-FlashHead-1_3B:/app/models/SoulX-FlashHead-1_3B:ro
+      - ./models/wav2vec2-base-960h:/app/models/wav2vec2-base-960h:ro
+      # 形象库 avatars/ 与产出视频 media/（持久化）
+      - ./data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health | grep -q '\"ok\"' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 300s
+      retries: 5
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

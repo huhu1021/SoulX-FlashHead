@@ -28,24 +28,40 @@
 
 ## 服务器部署步骤（Ubuntu + 单卡 4090）
 
+### 方式一：走阿里云 ACR（鹿明标准流程，推荐）
+
 ```bash
-# 1. 下载权重（国内先 export HF_ENDPOINT=https://hf-mirror.com）
-pip install "huggingface_hub[cli]"
+# ---- 本机（构建推送）----
+cd flash_head_server
+# 首次：同目录创建 .acr.env 写入 ACR_PASSWORD=xxx（已被 gitignore）
+./build_push.sh                    # 构建并推送 flashhead-server:latest（首次约 10GB+）
+# IMAGE_TAG=20261022 ./build_push.sh  # 或按日期打标签，会同时推一份 latest
+
+# ---- 5090 台式机 / GPU 服务器（Ubuntu 或 WSL2 Ubuntu）----
+mkdir -p deploy/models deploy/data && cd deploy
+# 上传 compose.prod.yaml / deploy_server.sh / .env.example（同目录）
+cp .env.example .env               # 按需改 MODEL_TYPE / API_KEY
+# 下载权重到 deploy/models/（国内先 export HF_ENDPOINT=https://hf-mirror.com）
 huggingface-cli download Soul-AILab/SoulX-FlashHead-1_3B --local-dir models/SoulX-FlashHead-1_3B
 huggingface-cli download facebook/wav2vec2-base-960h --local-dir models/wav2vec2-base-960h
+./deploy_server.sh                 # 登录 ACR → 拉镜像 → 起容器
+docker compose logs -f flashhead   # 等 "预热完成，开始对外服务"
+```
 
-# 2. 放入品牌形象（可选，不放则用项目自带示例）
-cp your_avatar.png flash_head_server/data/avatars/
+前置：GPU 机器需装好 NVIDIA 驱动 + Docker + nvidia-container-toolkit（WSL2 内同理），
+`nvidia-smi` 可见卡即可。
 
-# 3. 构建并启动（首次构建约 20~40 分钟，主要耗在 flash-attn）
-cd flash_head_server
-docker compose up -d --build
+### 方式二：源码直连部署（不用 ACR，同机构建）
 
-# 4. 等待预热完成（torch.compile 编译，约 1~2 分钟，看日志）
-docker compose logs -f flashhead
-# 出现 "预热完成，开始对外服务" 即就绪
+```bash
+git clone https://github.com/huhu1021/SoulX-FlashHead.git
+cd SoulX-FlashHead/flash_head_server
+docker compose up -d --build       # 按仓库内 docker-compose.yml 现场构建
+docker compose logs -f flashhead   # 等 "预热完成，开始对外服务"
+```
 
-# 5. 冒烟测试
+```bash
+# 冒烟测试（两种方式通用）
 curl http://127.0.0.1:8000/health
 python client_example.py
 ```
